@@ -1,13 +1,16 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import openai
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
 
-openai.api_key = os.getenv('OPENAI_API_KEY', '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')
+openai.api_key = os.getenv('OPENAI_API_KEY')
+if not openai.api_key:
+    raise ValueError("No OpenAI API key found in environment variables")
 
 def generate_analysis(swimmer_data):
     comprehensive_feedback_prompt = f""" 
@@ -78,24 +81,57 @@ def generate_analysis(swimmer_data):
             messages=[
                 {"role": "system", "content": "You are a professional swim coach providing structured analysis for freestyle swimming and recovery periods."},
                 {"role": "user", "content": comprehensive_feedback_prompt}
-            ]
+            ],
+            timeout=30 
         )
         return response['choices'][0]['message']['content']
+    except openai.error.OpenAIError as e:
+        app.logger.error(f"OpenAI API error: {str(e)}")
+        raise Exception("Error generating analysis")
     except Exception as e:
-        return str(e)
+        app.logger.error(f"Unexpected error: {str(e)}")
+        raise
+
+def validate_data(data):
+    """Validate incoming data"""
+    required_fields = ['name', 'lap_times', 'stroke_counts', 'breath_counts', 'splits', 'dps']
+    
+    for field in required_fields:
+        if field not in data:
+            raise ValueError(f"Missing required field: {field}")
+
+    if not isinstance(data['lap_times'], list) or not all(isinstance(x, (int, float)) for x in data['lap_times']):
+        raise ValueError("lap_times must be a list of numbers")
+    
+    if not isinstance(data['stroke_counts'], list) or not all(isinstance(x, (int, float)) for x in data['stroke_counts']):
+        raise ValueError("stroke_counts must be a list of numbers")
+    
+    if not isinstance(data['breath_counts'], list) or not all(isinstance(x, (int, float)) for x in data['breath_counts']):
+        raise ValueError("breath_counts must be a list of numbers")
+    
+    if not isinstance(data['splits'], list) or not all(isinstance(x, (int, float)) for x in data['splits']):
+        raise ValueError("splits must be a list of numbers")
+    
+    if not isinstance(data['dps'], list) or not all(isinstance(x, (int, float)) for x in data['dps']):
+        raise ValueError("dps must be a list of numbers")
 
 @app.route('/api/analyze-performance', methods=['POST'])
 def analyze_performance():
     try:
         data = request.get_json()
-        
-        required_fields = ['name', 'lap_times', 'stroke_counts', 'breath_counts', 'splits', 'dps']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({
-                    'error': f'Missing required field: {field}',
-                    'status': 'error'
-                }), 400
+        if not data:
+            return jsonify({
+                'error': 'No data provided',
+                'status': 'error'
+            }), 400
+            
+        try:
+            validate_data(data)
+        except ValueError as e:
+            return jsonify({
+                'error': str(e),
+                'status': 'error'
+            }), 400
 
         analysis = generate_analysis(data)
         
@@ -117,10 +153,17 @@ def analyze_performance():
         return jsonify(response_data)
 
     except Exception as e:
+        app.logger.error(f"Error processing request: {str(e)}")
         return jsonify({
-            'error': str(e),
+            'error': 'Internal server error',
             'status': 'error'
         }), 500
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    debug_mode = os.getenv('FLASK_ENV') == 'development'
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
