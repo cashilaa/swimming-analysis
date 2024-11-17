@@ -44,7 +44,12 @@ def generate_analysis(swimmer_data):
             "spirit_guidance": "Mental guidance",
             "technique_guidance": "Recovery recommendations",
             "energy_management": "Energy strategies",
-            "breathing_analysis": "Breathing patterns"
+            "breathing_analysis": "Breathing patterns",
+            "lap_time_guidance": "Specific guidance on maintaining appropriate recovery lap times",
+            "other_guidance": "Recommendations for heart rate zones during recovery",
+            "stroke_efficiency": "Guidance on maintaining efficient strokes during recovery",
+            "rest_duration": "Recommended duration for rest periods",
+            "transition_strategy": "Strategy for transitioning back to freestyle"
         }},
         "second_form_freestyle": {{
             "start_time": "10:00",
@@ -62,9 +67,23 @@ def generate_analysis(swimmer_data):
             "spirit_guidance": "Mental guidance",
             "technique_guidance": "Recovery recommendations",
             "energy_management": "Energy strategies",
-            "breathing_analysis": "Breathing patterns"
+            "breathing_analysis": "Breathing patterns",
+            "lap_time_guidance": "Specific guidance on maintaining appropriate recovery lap times",
+            "other_guidance": "Recommendations for heart rate zones during recovery",
+            "stroke_efficiency": "Guidance on maintaining efficient strokes during recovery",
+            "rest_duration": "Recommended duration for rest periods",
+            "transition_strategy": "Strategy for transitioning back to freestyle"
         }}
     }}
+
+    For the recovery periods, please provide detailed analysis considering:
+    1. Appropriate lap times for active recovery based on freestyle performance
+    2. Heart rate management and target zones
+    3. Stroke efficiency while maintaining recovery pace
+    4. Optimal rest durations
+    5. Strategies for transitioning back to freestyle
+    6. Energy conservation techniques
+    7. Breathing pattern recommendations
     """
 
     try:
@@ -76,6 +95,7 @@ def generate_analysis(swimmer_data):
             ]
         )
         
+        # Parse the response content as JSON
         analysis_text = response.choices[0].message.content
         analysis_json = json.loads(analysis_text)
         return analysis_json
