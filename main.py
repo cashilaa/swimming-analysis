@@ -35,7 +35,9 @@ def generate_analysis(swimmer_data):
             "spirit_guidance": "Mental feedback",
             "technique_guidance": "Technical advice",
             "speed_guidance": "Pace recommendations",
-            "metrics_analysis": "Metrics evaluation"
+            "metrics_analysis": "Metrics evaluation",
+            "lap_time_guidance": "Specific guidance about lap times",
+            "other_guidance": "Additional technical observations"
         }},
         "first_period_recovery": {{
             "start_time": "5:00",
@@ -45,11 +47,8 @@ def generate_analysis(swimmer_data):
             "technique_guidance": "Recovery recommendations",
             "energy_management": "Energy strategies",
             "breathing_analysis": "Breathing patterns",
-            "lap_time_guidance": "Specific guidance on maintaining appropriate recovery lap times",
-            "other_guidance": "Recommendations for heart rate zones during recovery",
-            "stroke_efficiency": "Guidance on maintaining efficient strokes during recovery",
-            "rest_duration": "Recommended duration for rest periods",
-            "transition_strategy": "Strategy for transitioning back to freestyle"
+            "lap_time_guidance": "Recovery pace guidance",
+            "other_guidance": "Additional recovery advice"
         }},
         "second_form_freestyle": {{
             "start_time": "10:00",
@@ -58,7 +57,9 @@ def generate_analysis(swimmer_data):
             "spirit_guidance": "Mental feedback",
             "technique_guidance": "Technical advice",
             "speed_guidance": "Pace recommendations",
-            "metrics_analysis": "Metrics evaluation"
+            "metrics_analysis": "Metrics evaluation",
+            "lap_time_guidance": "Specific guidance about lap times",
+            "other_guidance": "Additional technical observations"
         }},
         "second_period_recovery": {{
             "start_time": "15:00",
@@ -68,34 +69,23 @@ def generate_analysis(swimmer_data):
             "technique_guidance": "Recovery recommendations",
             "energy_management": "Energy strategies",
             "breathing_analysis": "Breathing patterns",
-            "lap_time_guidance": "Specific guidance on maintaining appropriate recovery lap times",
-            "other_guidance": "Recommendations for heart rate zones during recovery",
-            "stroke_efficiency": "Guidance on maintaining efficient strokes during recovery",
-            "rest_duration": "Recommended duration for rest periods",
-            "transition_strategy": "Strategy for transitioning back to freestyle"
+            "lap_time_guidance": "Recovery pace guidance",
+            "other_guidance": "Additional recovery advice"
         }}
     }}
 
-    For the recovery periods, please provide detailed analysis considering:
-    1. Appropriate lap times for active recovery based on freestyle performance
-    2. Heart rate management and target zones
-    3. Stroke efficiency while maintaining recovery pace
-    4. Optimal rest durations
-    5. Strategies for transitioning back to freestyle
-    6. Energy conservation techniques
-    7. Breathing pattern recommendations
+    Ensure all fields are filled with meaningful, specific guidance based on the provided metrics. Pay special attention to lap_time_guidance and other_guidance for all periods, particularly the recovery periods.
     """
 
     try:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a professional swim coach providing structured analysis for freestyle swimming and recovery periods. Ensure all responses are in valid JSON format."},
+                {"role": "system", "content": "You are a professional swim coach providing structured analysis for freestyle swimming and recovery periods. Ensure all responses are in valid JSON format with complete guidance for all fields, including lap times and other observations."},
                 {"role": "user", "content": comprehensive_feedback_prompt}
             ]
         )
         
-        # Parse the response content as JSON
         analysis_text = response.choices[0].message.content
         analysis_json = json.loads(analysis_text)
         return analysis_json
