@@ -4,15 +4,16 @@ import os
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-from flask_cors import CORS  # Added CORS support
+from flask_cors import CORS
 
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
-openai.api_key = os.getenv('OPENAI_API_KEY')
-if not openai.api_key:
+# Initialize the OpenAI client
+client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+if not os.getenv('OPENAI_API_KEY'):
     raise ValueError("No OpenAI API key found in environment variables")
 
 def generate_analysis(swimmer_data):
@@ -68,7 +69,7 @@ def generate_analysis(swimmer_data):
     """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a professional swim coach providing structured analysis for freestyle swimming and recovery periods. Ensure all responses are in valid JSON format."},
@@ -77,16 +78,13 @@ def generate_analysis(swimmer_data):
         )
         
         # Parse the response content as JSON
-        analysis_text = response['choices'][0]['message']['content']
+        analysis_text = response.choices[0].message.content
         analysis_json = json.loads(analysis_text)
         return analysis_json
         
     except json.JSONDecodeError as e:
         app.logger.error(f"JSON parsing error: {str(e)}")
         raise Exception("Error parsing analysis response")
-    except openai.error.OpenAIError as e:
-        app.logger.error(f"OpenAI API error: {str(e)}")
-        raise Exception("Error generating analysis")
     except Exception as e:
         app.logger.error(f"Unexpected error: {str(e)}")
         raise
