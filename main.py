@@ -11,7 +11,6 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Initialize the OpenAI client
 client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 if not os.getenv('OPENAI_API_KEY'):
     raise ValueError("No OpenAI API key found in environment variables")
@@ -77,7 +76,6 @@ def generate_analysis(swimmer_data):
             ]
         )
         
-        # Parse the response content as JSON
         analysis_text = response.choices[0].message.content
         analysis_json = json.loads(analysis_text)
         return analysis_json
