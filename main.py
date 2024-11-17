@@ -1,12 +1,15 @@
 from flask import Flask, request, jsonify
 import openai
 import os
+import json
 from datetime import datetime
 from dotenv import load_dotenv
+from flask_cors import CORS  # Added CORS support
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
 if not openai.api_key:
@@ -16,46 +19,6 @@ def generate_analysis(swimmer_data):
     comprehensive_feedback_prompt = f""" 
     As a professional swim coach, analyze the performance of Swimmer {swimmer_data['name']} and provide guidance for four distinct periods: First Form Freestyle, First Period Recovery, Second Form Freestyle, and Second Period Recovery.
 
-    The response should be in this exact JSON structure:
-    {{
-        "first_form_freestyle": {{
-            "start_time": "Time period start",
-            "end_time": "Time period end",
-            "observations": "General observations about the freestyle form",
-            "spirit_guidance": "Mental and motivational feedback for freestyle",
-            "technique_guidance": "Technical swimming advice specific to freestyle",
-            "speed_guidance": "Pace and speed recommendations",
-            "metrics_analysis": "Analysis of stroke count, DPS, and other metrics"
-        }},
-        "first_period_recovery": {{
-            "start_time": "Time period start",
-            "end_time": "Time period end",
-            "observations": "General observations about recovery",
-            "spirit_guidance": "Mental guidance during recovery",
-            "technique_guidance": "Recovery technique recommendations",
-            "energy_management": "Energy conservation and recovery strategies",
-            "breathing_analysis": "Analysis of breathing patterns during recovery"
-        }},
-        "second_form_freestyle": {{
-            "start_time": "Time period start",
-            "end_time": "Time period end",
-            "observations": "General observations about the freestyle form",
-            "spirit_guidance": "Mental and motivational feedback for freestyle",
-            "technique_guidance": "Technical swimming advice specific to freestyle",
-            "speed_guidance": "Pace and speed recommendations",
-            "metrics_analysis": "Analysis of stroke count, DPS, and other metrics"
-        }},
-        "second_period_recovery": {{
-            "start_time": "Time period start",
-            "end_time": "Time period end",
-            "observations": "General observations about recovery",
-            "spirit_guidance": "Mental guidance during recovery",
-            "technique_guidance": "Recovery technique recommendations",
-            "energy_management": "Energy conservation and recovery strategies",
-            "breathing_analysis": "Analysis of breathing patterns during recovery"
-        }}
-    }}
-
     Base your analysis on these metrics:
     - Lap times: {swimmer_data['lap_times']}
     - Stroke counts: {swimmer_data['stroke_counts']}
@@ -63,28 +26,64 @@ def generate_analysis(swimmer_data):
     - Splits: {swimmer_data['splits']}
     - DPS (Distance Per Stroke): {swimmer_data['dps']}
 
-    Consider the following in your analysis:
-    1. For Freestyle periods:
-       - Focus on stroke efficiency and form
-       - Analyze speed variations and consistency
-       - Evaluate technique maintenance under fatigue
-    
-    2. For Recovery periods:
-       - Assess effectiveness of recovery techniques
-       - Analyze breathing patterns and their impact
-       - Evaluate energy conservation strategies
+    Provide a structured analysis following this exact format for each period, ensuring valid JSON output:
+    {{
+        "first_form_freestyle": {{
+            "start_time": "0:00",
+            "end_time": "5:00",
+            "observations": "Brief analysis of freestyle form",
+            "spirit_guidance": "Mental feedback",
+            "technique_guidance": "Technical advice",
+            "speed_guidance": "Pace recommendations",
+            "metrics_analysis": "Metrics evaluation"
+        }},
+        "first_period_recovery": {{
+            "start_time": "5:00",
+            "end_time": "10:00",
+            "observations": "Recovery observations",
+            "spirit_guidance": "Mental guidance",
+            "technique_guidance": "Recovery recommendations",
+            "energy_management": "Energy strategies",
+            "breathing_analysis": "Breathing patterns"
+        }},
+        "second_form_freestyle": {{
+            "start_time": "10:00",
+            "end_time": "15:00",
+            "observations": "Freestyle form analysis",
+            "spirit_guidance": "Mental feedback",
+            "technique_guidance": "Technical advice",
+            "speed_guidance": "Pace recommendations",
+            "metrics_analysis": "Metrics evaluation"
+        }},
+        "second_period_recovery": {{
+            "start_time": "15:00",
+            "end_time": "20:00",
+            "observations": "Recovery observations",
+            "spirit_guidance": "Mental guidance",
+            "technique_guidance": "Recovery recommendations",
+            "energy_management": "Energy strategies",
+            "breathing_analysis": "Breathing patterns"
+        }}
+    }}
     """
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a professional swim coach providing structured analysis for freestyle swimming and recovery periods."},
+                {"role": "system", "content": "You are a professional swim coach providing structured analysis for freestyle swimming and recovery periods. Ensure all responses are in valid JSON format."},
                 {"role": "user", "content": comprehensive_feedback_prompt}
-            ],
-            timeout=30 
+            ]
         )
-        return response['choices'][0]['message']['content']
+        
+        # Parse the response content as JSON
+        analysis_text = response['choices'][0]['message']['content']
+        analysis_json = json.loads(analysis_text)
+        return analysis_json
+        
+    except json.JSONDecodeError as e:
+        app.logger.error(f"JSON parsing error: {str(e)}")
+        raise Exception("Error parsing analysis response")
     except openai.error.OpenAIError as e:
         app.logger.error(f"OpenAI API error: {str(e)}")
         raise Exception("Error generating analysis")
@@ -155,8 +154,9 @@ def analyze_performance():
     except Exception as e:
         app.logger.error(f"Error processing request: {str(e)}")
         return jsonify({
-            'error': 'Internal server error',
-            'status': 'error'
+            'error': str(e),
+            'status': 'error',
+            'details': 'An error occurred while processing the request'
         }), 500
 
 @app.route('/health', methods=['GET'])
